@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>图标生成器 - 废品回收管理系统</title>
+<style>
+  body {
+    font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    background: #f5f5f5;
+    text-align: center;
+    padding: 20px;
+  }
+  h1 { color: #2e7d32; margin-bottom: 8px; }
+  p { color: #757575; font-size: 14px; margin-bottom: 24px; }
+  .preview { display: flex; gap: 24px; margin-bottom: 24px; flex-wrap: wrap; justify-content: center; }
+  .preview-item { text-align: center; }
+  .preview-item canvas { border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+  .preview-item div { margin-top: 8px; font-size: 12px; color: #999; }
+  .btn {
+    padding: 14px 32px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    background: #2e7d32;
+    color: white;
+    margin: 6px;
+    transition: background 0.2s;
+  }
+  .btn:active { background: #1b5e20; }
+  .btn-outline {
+    background: white;
+    color: #2e7d32;
+    border: 2px solid #2e7d32;
+  }
+  .status { margin-top: 16px; font-size: 13px; color: #666; max-width: 400px; }
+  .status.green { color: #2e7d32; }
+</style>
+</head>
+<body>
+<h1>♻️ 生成应用图标</h1>
+<p>点击下方按钮生成图标文件，用于手机桌面显示</p>
+
+<div class="preview">
+  <div class="preview-item">
+    <canvas id="preview192" width="192" height="192"></canvas>
+    <div>192×192 图标</div>
+  </div>
+  <div class="preview-item">
+    <canvas id="preview512" width="512" height="512"></canvas>
+    <div>512×512 图标</div>
+  </div>
+</div>
+
+<button class="btn" onclick="generateIcons()">📥 一键生成图标文件</button>
+<button class="btn btn-outline" onclick="downloadBoth()">⬇️ 下载全部图标</button>
+
+<div class="status" id="status"></div>
+
+<script>
+function drawIcon(canvas, size) {
+  const ctx = canvas.getContext('2d');
+
+  // 背景渐变
+  const gradient = ctx.createLinearGradient(0, 0, size, size);
+  gradient.addColorStop(0, '#4caf50');
+  gradient.addColorStop(1, '#1b5e20');
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.roundRect(0, 0, size, size, size * 0.18);
+  ctx.fill();
+
+  // 回收符号 ♻️
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = size * 0.32;
+
+  // 三条弧形箭头
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  for (let i = 0; i < 3; i++) {
+    const angle = (i * Math.PI * 2) / 3 - Math.PI / 2;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+
+    // 箭头弧线
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = size * 0.07;
+    ctx.beginPath();
+    ctx.arc(0, r * 0.25, r * 0.55, Math.PI * 0.15, Math.PI * 1.35, false);
+    ctx.stroke();
+
+    // 箭头尖
+    const tipX = r * 0.55 * Math.cos(Math.PI * 0.15);
+    const tipY = r * 0.25 + r * 0.55 * Math.sin(Math.PI * 0.15);
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.moveTo(tipX + size * 0.06, tipY - size * 0.08);
+    ctx.lineTo(tipX, tipY);
+    ctx.lineTo(tipX - size * 0.08, tipY - size * 0.04);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  // 中心小圆
+  ctx.fillStyle = 'white';
+  ctx.beginPath();
+  ctx.arc(cx, cy, size * 0.08, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function generateIcons() {
+  const sizes = [192, 512];
+  let done = 0;
+  const status = document.getElementById('status');
+
+  // 先绘制预览
+  drawIcon(document.getElementById('preview192'), 192);
+  drawIcon(document.getElementById('preview512'), 512);
+
+  sizes.forEach(s => {
+    const canvas = document.createElement('canvas');
+    canvas.width = s; canvas.height = s;
+    drawIcon(canvas, s);
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'icon-' + s + '.png';
+      a.click();
+      URL.revokeObjectURL(url);
+      done++;
+      if (done >= 2) {
+        status.textContent = '✅ 图标已生成！请将 icon-192.png 和 icon-512.png 放在项目文件夹中';
+        status.className = 'status green';
+      }
+    }, 'image/png');
+  });
+}
+
+function downloadBoth() {
+  // 先画预览
+  drawIcon(document.getElementById('preview192'), 192);
+  drawIcon(document.getElementById('preview512'), 512);
+  // 触发下载
+  generateIcons();
+}
+
+// 初始化预览
+drawIcon(document.getElementById('preview192'), 192);
+drawIcon(document.getElementById('preview512'), 512);
+</script>
+</body>
+</html>

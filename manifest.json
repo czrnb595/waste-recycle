@@ -1,0 +1,26 @@
+{
+  "name": "废品回收管理系统",
+  "short_name": "废品回收",
+  "description": "苏州废品回收站管理工具 - 记录回收物品入库销售，市场价格行情，利润预测",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1b5e20",
+  "theme_color": "#2e7d32",
+  "lang": "zh-CN",
+  "categories": ["business", "utilities"],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

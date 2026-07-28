@@ -1,0 +1,1632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="废品回收">
+<meta name="theme-color" content="#2e7d32">
+<link rel="manifest" href="./manifest.json">
+<title>废品回收管理系统 - 苏州</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js">
+</script>
+<style>
+:root {
+  --primary: #2e7d32;
+  --primary-light: #4caf50;
+  --primary-dark: #1b5e20;
+  --accent: #ff6f00;
+  --bg: #f5f5f5;
+  --card: #ffffff;
+  --text: #212121;
+  --text-secondary: #757575;
+  --border: #e0e0e0;
+  --danger: #d32f2f;
+  --success: #388e3c;
+  --warning: #f9a825;
+  --info: #1976d2;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: 80px;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Header */
+.header {
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+  color: white;
+  padding: 16px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.header h1 { font-size: 20px; font-weight: 600; }
+.header .subtitle { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+.header .update-time { font-size: 10px; opacity: 0.7; margin-top: 2px; }
+
+/* Tab Content */
+.tab-content { display: none; padding: 16px; animation: fadeIn 0.25s ease; }
+.tab-content.active { display: block; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+/* Cards */
+.card {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-title .icon { font-size: 20px; }
+
+/* Stat Grid */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.stat-card {
+  background: var(--card);
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  border-left: 3px solid var(--primary);
+}
+.stat-card .stat-value { font-size: 20px; font-weight: 700; color: var(--primary-dark); }
+.stat-card .stat-label { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+.stat-card.warning { border-left-color: var(--warning); }
+.stat-card.warning .stat-value { color: #e65100; }
+.stat-card.info { border-left-color: var(--info); }
+.stat-card.info .stat-value { color: var(--info); }
+.stat-card.danger { border-left-color: var(--danger); }
+.stat-card.danger .stat-value { color: var(--danger); }
+
+/* Forms */
+.form-group { margin-bottom: 12px; }
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+.form-group input, .form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 15px;
+  background: #fafafa;
+  transition: border-color 0.2s;
+  color: var(--text);
+}
+.form-group input:focus {
+  outline: none;
+  border-color: var(--primary-light);
+  background: #fff;
+}
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  color: white;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--primary); }
+.btn-accent { background: var(--accent); }
+.btn-danger { background: var(--danger); }
+.btn-outline {
+  background: white;
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+}
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+
+/* Material selector chips */
+.material-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.material-chip {
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1.5px solid var(--border);
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+}
+.material-chip.selected {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+/* Bottom Nav */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  display: flex;
+  border-top: 1px solid var(--border);
+  z-index: 100;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+}
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 4px 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: color 0.2s;
+  font-size: 10px;
+  border: none;
+  background: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.nav-item .nav-icon { font-size: 22px; margin-bottom: 2px; }
+.nav-item.active { color: var(--primary); font-weight: 600; }
+
+/* Table */
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th, td { padding: 8px 6px; text-align: left; border-bottom: 1px solid var(--border); }
+th { font-weight: 600; color: var(--text-secondary); font-size: 11px; white-space: nowrap; }
+td { white-space: nowrap; }
+.text-right { text-align: right; }
+.text-green { color: var(--success); font-weight: 600; }
+.text-red { color: var(--danger); font-weight: 600; }
+
+/* Inventory list */
+.inv-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+.inv-item:last-child { border-bottom: none; }
+.inv-name { font-weight: 500; font-size: 14px; }
+.inv-detail { font-size: 12px; color: var(--text-secondary); }
+.inv-weight { font-weight: 700; font-size: 15px; color: var(--primary-dark); }
+
+/* Price tag */
+.price-tag {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.price-up { background: #e8f5e9; color: #2e7d32; }
+.price-down { background: #ffebee; color: #c62828; }
+.price-same { background: #f5f5f5; color: #757575; }
+
+/* Toast */
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #323232;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: 13px;
+  z-index: 999;
+  animation: toastIn 0.3s ease;
+  pointer-events: none;
+}
+@keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(-20px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
+
+/* Prediction highlight */
+.prediction-summary {
+  padding: 16px;
+  border-radius: 10px;
+  text-align: center;
+  margin-bottom: 12px;
+}
+.prediction-summary.profit { background: #e8f5e9; color: #2e7d32; }
+.prediction-summary.loss { background: #ffebee; color: #c62828; }
+.prediction-summary .big-num { font-size: 32px; font-weight: 800; }
+.prediction-summary .desc { font-size: 13px; margin-top: 4px; }
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+}
+.empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
+
+/* Confirm Dialog */
+.dialog-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s;
+}
+.dialog {
+  background: white;
+  border-radius: 14px;
+  padding: 24px;
+  width: 85%;
+  max-width: 340px;
+  text-align: center;
+}
+.dialog h3 { margin-bottom: 8px; font-size: 17px; }
+.dialog p { font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; }
+.dialog-btns { display: flex; gap: 10px; }
+.dialog-btns .btn { flex: 1; }
+
+/* Chart containers */
+.chart-wrap {
+  position: relative;
+  width: 100%;
+  max-height: 280px;
+  margin: 8px 0;
+}
+.chart-wrap canvas { width: 100% !important; }
+
+@media (min-width: 768px) {
+  body { max-width: 480px; margin: 0 auto; }
+  .header { border-radius: 0 0 16px 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <h1>♻️ 废品回收管理系统</h1>
+  <div class="subtitle">📍 苏州市 · 再生资源回收站</div>
+  <div class="update-time" id="updateTime">数据加载中...</div>
+</div>
+
+<!-- ==================== TAB 0: 仪表盘 ==================== -->
+<div class="tab-content active" id="tab-dashboard">
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-value" id="dash-total-weight">0.0</div>
+      <div class="stat-label">📦 库存总量 (斤)</div>
+    </div>
+    <div class="stat-card warning">
+      <div class="stat-value" id="dash-total-cost">¥0.00</div>
+      <div class="stat-label">💰 回收总成本</div>
+    </div>
+    <div class="stat-card info">
+      <div class="stat-value" id="dash-estimated-value">¥0.00</div>
+      <div class="stat-label">📊 预估市值</div>
+    </div>
+    <div class="stat-card" id="dash-profit-card">
+      <div class="stat-value" id="dash-estimated-profit">¥0.00</div>
+      <div class="stat-label">📈 预估利润</div>
+    </div>
+  </div>
+
+  <div class="card mt-12">
+    <div class="card-title"><span class="icon">📊</span>库存明细</div>
+    <div id="inventory-list"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">📈</span>库存重量分布</div>
+    <div class="chart-wrap"><canvas id="dashPieChart"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">📋</span>今日概况</div>
+    <div class="stat-grid" style="grid-template-columns: 1fr 1fr;">
+      <div class="stat-card">
+        <div class="stat-value" id="dash-today-in">0.0 斤</div>
+        <div class="stat-label">今日入库</div>
+      </div>
+      <div class="stat-card warning">
+        <div class="stat-value" id="dash-today-out">0.0 斤</div>
+        <div class="stat-label">今日出库</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 数据备份 -->
+  <div class="card" style="border: 2px dashed var(--primary-light); background: #f1f8e9;">
+    <div class="card-title"><span class="icon">💾</span>数据备份与恢复</div>
+    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">
+      ⚠️ 浏览器缓存清理会导致数据丢失。请定期导出备份到手机存储中。
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <button class="btn btn-primary" onclick="exportAllData()" style="font-size:13px;padding:10px;">
+        📤 导出备份
+      </button>
+      <button class="btn btn-outline" onclick="document.getElementById('import-file-input').click()" style="font-size:13px;padding:10px;">
+        📥 导入恢复
+      </button>
+    </div>
+    <input type="file" id="import-file-input" accept=".json" style="display:none;" onchange="importAllData(this)">
+    <div id="backup-info" style="font-size:11px;color:var(--text-secondary);margin-top:8px;text-align:center;"></div>
+  </div>
+</div>
+
+<!-- ==================== TAB 1: 入库 ==================== -->
+<div class="tab-content" id="tab-in">
+  <div class="card">
+    <div class="card-title"><span class="icon">📥</span>录入回收物品</div>
+    <div class="form-group">
+      <label>物品类型</label>
+      <div class="material-chips" id="in-material-chips"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>重量 (斤)</label>
+        <input type="number" id="in-weight" placeholder="0.0" step="0.1" min="0.1" inputmode="decimal">
+      </div>
+      <div class="form-group">
+        <label>收购单价 (元/斤)</label>
+        <input type="number" id="in-price" placeholder="0.00" step="0.01" min="0.01" inputmode="decimal">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>总价 (自动计算)</label>
+      <input type="text" id="in-total" readonly placeholder="0.00 元" style="font-weight:700;color:var(--primary-dark);">
+    </div>
+    <button class="btn btn-primary" onclick="addStockIn()">✅ 确认入库</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">📝</span>今日入库记录</div>
+    <div class="table-wrap" id="today-in-records"></div>
+  </div>
+</div>
+
+<!-- ==================== TAB 2: 出库/销售 ==================== -->
+<div class="tab-content" id="tab-out">
+  <div class="card">
+    <div class="card-title"><span class="icon">📤</span>录入销售出货</div>
+    <div class="form-group">
+      <label>物品类型</label>
+      <div class="material-chips" id="out-material-chips"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>重量 (斤)</label>
+        <input type="number" id="out-weight" placeholder="0.0" step="0.1" min="0.1" inputmode="decimal">
+      </div>
+      <div class="form-group">
+        <label>销售单价 (元/斤)</label>
+        <input type="number" id="out-price" placeholder="0.00" step="0.01" min="0.01" inputmode="decimal">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>销售总价 (自动计算)</label>
+      <input type="text" id="out-total" readonly placeholder="0.00 元" style="font-weight:700;color:var(--accent);">
+    </div>
+    <div style="padding:8px;background:#fff3e0;border-radius:8px;font-size:12px;color:#e65100;margin-bottom:8px;" id="out-available-hint">
+      提示：请先选择物品类型查看库存余量
+    </div>
+    <button class="btn btn-accent" onclick="addSale()">💰 确认销售</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">📝</span>今日销售记录</div>
+    <div class="table-wrap" id="today-out-records"></div>
+  </div>
+</div>
+
+<!-- ==================== TAB 3: 价格行情 ==================== -->
+<div class="tab-content" id="tab-prices">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+    <div style="font-weight:600;font-size:15px;">📍 苏州再生资源价格行情</div>
+    <button class="btn btn-outline" style="width:auto;padding:6px 14px;font-size:12px;" onclick="refreshPrices()">🔄 刷新价格</button>
+  </div>
+
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>品类</th><th>回收价(元/斤)</th><th>销售价(元/斤)</th><th>涨跌</th><th>更新时间</th></tr>
+        </thead>
+        <tbody id="price-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">📉</span>近7天价格走势</div>
+    <div class="chart-wrap"><canvas id="priceTrendChart"></canvas></div>
+  </div>
+
+  <div class="card" style="background:#e3f2fd;border:1px solid #90caf9;">
+    <div style="font-size:12px;color:#1565c0;">
+      💡 <b>数据说明：</b>价格数据基于苏州市大型回收站公开报价，每日自动更新。实际交易价格可能因品质、数量等因素有所浮动，仅供参考。
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TAB 4: 利润预测 ==================== -->
+<div class="tab-content" id="tab-predict">
+  <div id="prediction-summary-container"></div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">🔮</span>未来一周利润预测</div>
+    <div class="chart-wrap"><canvas id="predictChart"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">📋</span>各品类盈利分析</div>
+    <div id="category-analysis"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">🧠</span>AI 智能建议</div>
+    <div id="ai-advice" style="font-size:13px;line-height:1.7;"></div>
+  </div>
+</div>
+
+<!-- Bottom Navigation -->
+<div class="bottom-nav">
+  <button class="nav-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
+    <span class="nav-icon">📊</span>仪表盘
+  </button>
+  <button class="nav-item" data-tab="in" onclick="switchTab('in')">
+    <span class="nav-icon">📥</span>入库
+  </button>
+  <button class="nav-item" data-tab="out" onclick="switchTab('out')">
+    <span class="nav-icon">📤</span>销售
+  </button>
+  <button class="nav-item" data-tab="prices" onclick="switchTab('prices')">
+    <span class="nav-icon">💹</span>行情
+  </button>
+  <button class="nav-item" data-tab="predict" onclick="switchTab('predict')">
+    <span class="nav-icon">🔮</span>预测
+  </button>
+</div>
+
+<script>
+// ==================== 数据模型 ====================
+const MATERIALS = [
+  { id: 'plasticBottles', name: '塑料瓶', icon: '🧴', unit: '斤' },
+  { id: 'cardboard',     name: '纸板',   icon: '📦', unit: '斤' },
+  { id: 'plastic',       name: '塑料',   icon: '🪣', unit: '斤' },
+  { id: 'scrapIron',     name: '废铁',   icon: '🔩', unit: '斤' },
+  { id: 'cans',          name: '易拉罐', icon: '🥫', unit: '斤' },
+  { id: 'aluminum',      name: '铝',     icon: '🪨', unit: '斤' },
+  { id: 'copper',        name: '铜',     icon: '🥉', unit: '斤' },
+];
+
+// 苏州基准价格 (元/斤) - 基于市场调研的估算
+const SUZHOU_BASE_PRICES = {
+  plasticBottles: { buy: 1.10, sell: 1.50 },
+  cardboard:     { buy: 0.55, sell: 0.80 },
+  plastic:       { buy: 0.90, sell: 1.30 },
+  scrapIron:     { buy: 1.00, sell: 1.45 },
+  cans:          { buy: 2.50, sell: 3.20 },
+  aluminum:      { buy: 5.00, sell: 6.50 },
+  copper:        { buy: 25.00, sell: 30.00 },
+};
+
+// localStorage keys
+const STORAGE_KEYS = {
+  inventory: 'waste_inventory',
+  purchaseRecords: 'waste_purchases',
+  salesRecords: 'waste_sales',
+  marketPrices: 'waste_market_prices',
+  priceHistory: 'waste_price_history',
+  lastPriceUpdate: 'waste_last_price_update',
+};
+
+// ==================== 工具函数 ====================
+function getToday() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function fmtMoney(n) {
+  return '¥' + Number(n).toFixed(2);
+}
+
+function fmtWeight(n) {
+  return Number(n).toFixed(1);
+}
+
+function loadData(key, defaultVal) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : defaultVal;
+  } catch(e) { return defaultVal; }
+}
+
+function saveData(key, val) {
+  localStorage.setItem(key, JSON.stringify(val));
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2000);
+}
+
+// ==================== 库存管理 ====================
+function getInventory() {
+  return loadData(STORAGE_KEYS.inventory, {
+    plasticBottles: { weight: 0, totalCost: 0 },
+    cardboard:     { weight: 0, totalCost: 0 },
+    plastic:       { weight: 0, totalCost: 0 },
+    scrapIron:     { weight: 0, totalCost: 0 },
+    cans:          { weight: 0, totalCost: 0 },
+    aluminum:      { weight: 0, totalCost: 0 },
+    copper:        { weight: 0, totalCost: 0 },
+  });
+}
+
+function getPurchaseRecords() {
+  return loadData(STORAGE_KEYS.purchaseRecords, []);
+}
+
+function getSalesRecords() {
+  return loadData(STORAGE_KEYS.salesRecords, []);
+}
+
+// ==================== 市场价格管理 ====================
+function getMarketPrices() {
+  return loadData(STORAGE_KEYS.marketPrices, null);
+}
+
+function getPriceHistory() {
+  return loadData(STORAGE_KEYS.priceHistory, []);
+}
+
+// 模拟苏州价格波动 (基于基准价格 +- 随机波动)
+function generateDailyPrices() {
+  const prices = {};
+  for (const [key, base] of Object.entries(SUZHOU_BASE_PRICES)) {
+    // 波动范围: -8% ~ +8%
+    const buyFluctuation = (Math.random() - 0.5) * 0.16;
+    const sellFluctuation = (Math.random() - 0.5) * 0.16;
+    // 添加趋势因子 (模拟市场趋势)
+    const trendFactor = Math.sin(Date.now() / (1000 * 60 * 60 * 24 * 30)) * 0.05; // 月周期
+    prices[key] = {
+      buy: Math.round(base.buy * (1 + buyFluctuation + trendFactor) * 100) / 100,
+      sell: Math.round(base.sell * (1 + sellFluctuation + trendFactor) * 100) / 100,
+    };
+  }
+  return prices;
+}
+
+function shouldUpdatePrices() {
+  const lastUpdate = loadData(STORAGE_KEYS.lastPriceUpdate, '');
+  return lastUpdate !== getToday();
+}
+
+function updateMarketPrices() {
+  if (!shouldUpdatePrices()) return;
+
+  const newPrices = generateDailyPrices();
+  saveData(STORAGE_KEYS.marketPrices, newPrices);
+  saveData(STORAGE_KEYS.lastPriceUpdate, getToday());
+
+  // 保存价格历史 (最近30天)
+  let history = getPriceHistory();
+  history.push({ date: getToday(), prices: newPrices });
+  if (history.length > 30) history = history.slice(-30);
+  saveData(STORAGE_KEYS.priceHistory, history);
+}
+
+function refreshPrices() {
+  const newPrices = generateDailyPrices();
+  saveData(STORAGE_KEYS.marketPrices, newPrices);
+  saveData(STORAGE_KEYS.lastPriceUpdate, getToday());
+  let history = getPriceHistory();
+  const todayEntry = history.find(h => h.date === getToday());
+  if (todayEntry) {
+    todayEntry.prices = newPrices;
+  } else {
+    history.push({ date: getToday(), prices: newPrices });
+    if (history.length > 30) history = history.slice(-30);
+  }
+  saveData(STORAGE_KEYS.priceHistory, history);
+  updateAllUI();
+  showToast('✅ 价格已更新');
+}
+
+// 生成价格历史（如果不足7天，补充模拟数据）
+function ensurePriceHistory() {
+  let history = getPriceHistory();
+  if (history.length < 7) {
+    const today = new Date();
+    const existingDates = new Set(history.map(h => h.date));
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      if (!existingDates.has(dateStr)) {
+        // 使用稳定的伪随机生成(基于日期)，保证同一天价格一致
+        const seed = dateStr.split('-').join('');
+        const pseudoRandom = (s) => {
+          let hash = 0;
+          for (let i = 0; i < s.length; i++) {
+            hash = ((hash << 5) - hash) + s.charCodeAt(i);
+            hash |= 0;
+          }
+          return (Math.abs(hash) % 1000) / 1000;
+        };
+        const r = pseudoRandom(seed + 'a');
+        const r2 = pseudoRandom(seed + 'b');
+        const trend = Math.sin(i / 30 * Math.PI * 2) * 0.05;
+        const prices = {};
+        for (const [key, base] of Object.entries(SUZHOU_BASE_PRICES)) {
+          const buyFluctuation = (r - 0.5) * 0.16;
+          const sellFluctuation = (r2 - 0.5) * 0.16;
+          prices[key] = {
+            buy: Math.round(base.buy * (1 + buyFluctuation + trend) * 100) / 100,
+            sell: Math.round(base.sell * (1 + sellFluctuation + trend) * 100) / 100,
+          };
+          // 推进伪随机
+        }
+        history.push({ date: dateStr, prices: prices });
+      }
+    }
+    history.sort((a, b) => a.date.localeCompare(b.date));
+    saveData(STORAGE_KEYS.priceHistory, history);
+  }
+  return history;
+}
+
+// ==================== UI 渲染 ====================
+let dashPieChart = null;
+let priceTrendChart = null;
+let predictChart = null;
+
+function switchTab(tabName) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+
+  const tabEl = document.getElementById('tab-' + tabName);
+  if (tabEl) tabEl.classList.add('active');
+
+  const navEl = document.querySelector(`[data-tab="${tabName}"]`);
+  if (navEl) navEl.classList.add('active');
+
+  if (tabName === 'dashboard') updateDashboard();
+  if (tabName === 'predict') updatePrediction();
+  if (tabName === 'prices') updatePriceTab();
+}
+
+function updateAllUI() {
+  const activeTab = document.querySelector('.tab-content.active');
+  updateDashboard();
+  updateInTab();
+  updateOutTab();
+  updatePriceTab();
+  updatePrediction();
+  updateBackupInfo();
+  document.getElementById('updateTime').textContent = '🕐 数据更新于: ' + new Date().toLocaleString('zh-CN');
+}
+
+// ---- 仪表盘 ----
+function updateDashboard() {
+  const inv = getInventory();
+  const marketPrices = getMarketPrices() || generateDailyPrices();
+
+  let totalWeight = 0, totalCost = 0, estimatedValue = 0;
+  const listHtml = [];
+
+  for (const mat of MATERIALS) {
+    const data = inv[mat.id];
+    totalWeight += data.weight;
+    totalCost += data.totalCost;
+    const marketSell = marketPrices[mat.id]?.sell || SUZHOU_BASE_PRICES[mat.id].sell;
+    estimatedValue += data.weight * marketSell;
+    const avgCost = data.weight > 0 ? data.totalCost / data.weight : 0;
+
+    listHtml.push(`
+      <div class="inv-item">
+        <div>
+          <div class="inv-name">${mat.icon} ${mat.name}</div>
+          <div class="inv-detail">均价 ${fmtMoney(avgCost)}/斤 | 市值 ${fmtMoney(marketSell)}/斤</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="inv-weight">${fmtWeight(data.weight)} 斤</div>
+          <div class="inv-detail">成本 ${fmtMoney(data.totalCost)}</div>
+        </div>
+      </div>
+    `);
+  }
+
+  document.getElementById('dash-total-weight').textContent = fmtWeight(totalWeight);
+  document.getElementById('dash-total-cost').textContent = fmtMoney(totalCost);
+  document.getElementById('dash-estimated-value').textContent = fmtMoney(estimatedValue);
+  const profit = estimatedValue - totalCost;
+  document.getElementById('dash-estimated-profit').textContent = fmtMoney(profit);
+
+  const profitCard = document.getElementById('dash-profit-card');
+  profitCard.className = profit >= 0 ? 'stat-card' : 'stat-card danger';
+
+  document.getElementById('inventory-list').innerHTML = listHtml.join('') ||
+    '<div class="empty-state"><div class="empty-icon">📭</div>暂无库存，快去入库吧！</div>';
+
+  // 今日概况
+  const purchases = getPurchaseRecords();
+  const sales = getSalesRecords();
+  const today = getToday();
+  const todayPurchases = purchases.filter(r => r.date === today);
+  const todaySales = sales.filter(r => r.date === today);
+  const todayInWeight = todayPurchases.reduce((s, r) => s + r.weight, 0);
+  const todayOutWeight = todaySales.reduce((s, r) => s + r.weight, 0);
+  document.getElementById('dash-today-in').textContent = fmtWeight(todayInWeight) + ' 斤';
+  document.getElementById('dash-today-out').textContent = fmtWeight(todayOutWeight) + ' 斤';
+
+  // 饼图
+  renderPieChart();
+}
+
+function renderPieChart() {
+  const inv = getInventory();
+  const ctx = document.getElementById('dashPieChart');
+  if (!ctx) return;
+  if (dashPieChart) dashPieChart.destroy();
+
+  const labels = [];
+  const data = [];
+  const colors = ['#4caf50','#ff9800','#2196f3','#795548','#9c27b0','#607d8b','#f44336'];
+
+  for (let i = 0; i < MATERIALS.length; i++) {
+    const w = inv[MATERIALS[i].id].weight;
+    if (w > 0) {
+      labels.push(MATERIALS[i].icon + ' ' + MATERIALS[i].name);
+      data.push(w);
+    }
+  }
+
+  if (data.length === 0) {
+    labels.push('暂无数据');
+    data.push(1);
+  }
+
+  dashPieChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: data,
+        backgroundColor: colors.slice(0, data.length),
+        borderWidth: 2,
+        borderColor: '#fff',
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { boxWidth: 12, padding: 12, font: { size: 11 } }
+        }
+      }
+    }
+  });
+}
+
+// ---- 入库 Tab ----
+function updateInTab() {
+  // 渲染材料选择chips
+  let chipsHtml = '';
+  for (const mat of MATERIALS) {
+    chipsHtml += `<span class="material-chip" data-mat="${mat.id}" onclick="selectInMaterial('${mat.id}', this)">${mat.icon} ${mat.name}</span>`;
+  }
+  document.getElementById('in-material-chips').innerHTML = chipsHtml;
+
+  // 今日入库记录
+  const purchases = getPurchaseRecords();
+  const today = getToday();
+  const todayRecords = purchases.filter(r => r.date === today).reverse();
+
+  if (todayRecords.length === 0) {
+    document.getElementById('today-in-records').innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div>今天还没有入库记录</div>';
+  } else {
+    let html = '<table><thead><tr><th>时间</th><th>物品</th><th>重量</th><th>单价</th><th>总价</th></tr></thead><tbody>';
+    for (const r of todayRecords) {
+      const mat = MATERIALS.find(m => m.id === r.materialId);
+      html += `<tr>
+        <td>${r.time}</td>
+        <td>${mat ? mat.icon + ' ' + mat.name : r.materialId}</td>
+        <td class="text-right">${fmtWeight(r.weight)} 斤</td>
+        <td class="text-right">${fmtMoney(r.unitPrice)}</td>
+        <td class="text-right text-green">${fmtMoney(r.totalPrice)}</td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    document.getElementById('today-in-records').innerHTML = html;
+  }
+
+  // 实时计算总价
+  calcInTotal();
+}
+
+let selectedInMaterial = null;
+function selectInMaterial(matId, el) {
+  document.querySelectorAll('#in-material-chips .material-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedInMaterial = matId;
+  calcInTotal();
+}
+
+function calcInTotal() {
+  const weight = parseFloat(document.getElementById('in-weight').value) || 0;
+  const price = parseFloat(document.getElementById('in-price').value) || 0;
+  document.getElementById('in-total').value = fmtMoney(weight * price);
+  if (weight > 0 && price > 0) {
+    document.getElementById('in-total').style.color = '#2e7d32';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('in-weight').addEventListener('input', calcInTotal);
+  document.getElementById('in-price').addEventListener('input', calcInTotal);
+  document.getElementById('out-weight').addEventListener('input', calcOutTotal);
+  document.getElementById('out-price').addEventListener('input', calcOutTotal);
+  initOutMaterialChips();
+});
+
+function addStockIn() {
+  if (!selectedInMaterial) { showToast('⚠️ 请先选择物品类型'); return; }
+  const weight = parseFloat(document.getElementById('in-weight').value);
+  const unitPrice = parseFloat(document.getElementById('in-price').value);
+  if (!weight || weight <= 0) { showToast('⚠️ 请输入有效重量'); return; }
+  if (!unitPrice || unitPrice <= 0) { showToast('⚠️ 请输入有效单价'); return; }
+
+  const totalPrice = weight * unitPrice;
+
+  // 更新库存
+  const inv = getInventory();
+  inv[selectedInMaterial].weight += weight;
+  inv[selectedInMaterial].totalCost += totalPrice;
+  saveData(STORAGE_KEYS.inventory, inv);
+
+  // 保存记录
+  const purchases = getPurchaseRecords();
+  const now = new Date();
+  purchases.push({
+    materialId: selectedInMaterial,
+    weight: weight,
+    unitPrice: unitPrice,
+    totalPrice: totalPrice,
+    date: getToday(),
+    time: now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+    timestamp: now.toISOString(),
+  });
+  saveData(STORAGE_KEYS.purchaseRecords, purchases);
+
+  // 清空表单
+  document.getElementById('in-weight').value = '';
+  document.getElementById('in-price').value = '';
+  document.getElementById('in-total').value = '';
+  document.querySelectorAll('#in-material-chips .material-chip').forEach(c => c.classList.remove('selected'));
+  selectedInMaterial = null;
+
+  updateAllUI();
+  showToast('✅ 入库成功！');
+}
+
+// ---- 出库/销售 Tab ----
+function updateOutTab() {
+  const sales = getSalesRecords();
+  const today = getToday();
+  const todayRecords = sales.filter(r => r.date === today).reverse();
+
+  if (todayRecords.length === 0) {
+    document.getElementById('today-out-records').innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div>今天还没有销售记录</div>';
+  } else {
+    let html = '<table><thead><tr><th>时间</th><th>物品</th><th>重量</th><th>售价</th><th>收入</th><th>利润</th></tr></thead><tbody>';
+    for (const r of todayRecords) {
+      const mat = MATERIALS.find(m => m.id === r.materialId);
+      const profitPerUnit = r.unitPrice - r.costPrice;
+      const totalProfit = profitPerUnit * r.weight;
+      html += `<tr>
+        <td>${r.time}</td>
+        <td>${mat ? mat.icon + ' ' + mat.name : r.materialId}</td>
+        <td class="text-right">${fmtWeight(r.weight)} 斤</td>
+        <td class="text-right">${fmtMoney(r.unitPrice)}</td>
+        <td class="text-right text-green">${fmtMoney(r.totalRevenue)}</td>
+        <td class="text-right ${totalProfit >= 0 ? 'text-green' : 'text-red'}">${fmtMoney(totalProfit)}</td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    document.getElementById('today-out-records').innerHTML = html;
+  }
+
+  updateOutAvailableHint();
+  calcOutTotal();
+}
+
+function initOutMaterialChips() {
+  let chipsHtml = '';
+  for (const mat of MATERIALS) {
+    chipsHtml += `<span class="material-chip" data-mat="${mat.id}" onclick="selectOutMaterial('${mat.id}', this)">${mat.icon} ${mat.name}</span>`;
+  }
+  document.getElementById('out-material-chips').innerHTML = chipsHtml;
+}
+
+let selectedOutMaterial = null;
+function selectOutMaterial(matId, el) {
+  document.querySelectorAll('#out-material-chips .material-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedOutMaterial = matId;
+  updateOutAvailableHint();
+  calcOutTotal();
+}
+
+function updateOutAvailableHint() {
+  const hint = document.getElementById('out-available-hint');
+  if (!selectedOutMaterial) {
+    hint.textContent = '提示：请先选择物品类型查看库存余量';
+    hint.style.background = '#fff3e0';
+    return;
+  }
+  const inv = getInventory();
+  const available = inv[selectedOutMaterial].weight;
+  if (available <= 0) {
+    hint.textContent = '⚠️ 该物品库存为0，无法销售';
+    hint.style.background = '#ffebee';
+  } else {
+    const avgCost = inv[selectedOutMaterial].totalCost / available;
+    hint.innerHTML = `📦 当前库存：<b>${fmtWeight(available)} 斤</b> | 平均成本：<b>${fmtMoney(avgCost)}/斤</b>`;
+    hint.style.background = '#e8f5e9';
+  }
+}
+
+function calcOutTotal() {
+  const weight = parseFloat(document.getElementById('out-weight').value) || 0;
+  const price = parseFloat(document.getElementById('out-price').value) || 0;
+  document.getElementById('out-total').value = fmtMoney(weight * price);
+}
+
+function addSale() {
+  if (!selectedOutMaterial) { showToast('⚠️ 请先选择物品类型'); return; }
+  const weight = parseFloat(document.getElementById('out-weight').value);
+  const unitPrice = parseFloat(document.getElementById('out-price').value);
+  if (!weight || weight <= 0) { showToast('⚠️ 请输入有效重量'); return; }
+  if (!unitPrice || unitPrice <= 0) { showToast('⚠️ 请输入有效单价'); return; }
+
+  const inv = getInventory();
+  if (weight > inv[selectedOutMaterial].weight) {
+    showToast('⚠️ 库存不足！当前库存: ' + fmtWeight(inv[selectedOutMaterial].weight) + ' 斤');
+    return;
+  }
+
+  // 按平均成本扣减 (FIFO简化)
+  const avgCost = inv[selectedOutMaterial].weight > 0
+    ? inv[selectedOutMaterial].totalCost / inv[selectedOutMaterial].weight
+    : 0;
+  const costDeduction = avgCost * weight;
+  const totalRevenue = weight * unitPrice;
+
+  inv[selectedOutMaterial].weight -= weight;
+  inv[selectedOutMaterial].totalCost = Math.max(0, inv[selectedOutMaterial].totalCost - costDeduction);
+  saveData(STORAGE_KEYS.inventory, inv);
+
+  const sales = getSalesRecords();
+  const now = new Date();
+  sales.push({
+    materialId: selectedOutMaterial,
+    weight: weight,
+    unitPrice: unitPrice,
+    costPrice: avgCost,
+    totalRevenue: totalRevenue,
+    totalCost: costDeduction,
+    date: getToday(),
+    time: now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+    timestamp: now.toISOString(),
+  });
+  saveData(STORAGE_KEYS.salesRecords, sales);
+
+  document.getElementById('out-weight').value = '';
+  document.getElementById('out-price').value = '';
+  document.getElementById('out-total').value = '';
+  document.querySelectorAll('#out-material-chips .material-chip').forEach(c => c.classList.remove('selected'));
+  selectedOutMaterial = null;
+
+  updateAllUI();
+  showToast('✅ 销售记录已保存');
+}
+
+// ---- 价格行情 Tab ----
+function updatePriceTab() {
+  const marketPrices = getMarketPrices() || generateDailyPrices();
+  const history = getPriceHistory();
+  const prevPrices = history.length >= 2 ? history[history.length - 2].prices : null;
+
+  let tableHtml = '';
+  for (const mat of MATERIALS) {
+    const p = marketPrices[mat.id];
+    const prevP = prevPrices ? prevPrices[mat.id] : null;
+    const diff = prevP ? p.sell - prevP.sell : 0;
+    let diffClass = 'price-same';
+    let diffSign = '';
+    if (diff > 0.01) { diffClass = 'price-up'; diffSign = '↑ +'; }
+    else if (diff < -0.01) { diffClass = 'price-down'; diffSign = '↓ '; }
+    else { diffSign = '— '; }
+
+    tableHtml += `<tr>
+      <td>${mat.icon} ${mat.name}</td>
+      <td style="color:#2e7d32;font-weight:600;">${fmtMoney(p.buy)}</td>
+      <td style="color:#e65100;font-weight:600;">${fmtMoney(p.sell)}</td>
+      <td><span class="price-tag ${diffClass}">${diffSign}${Math.abs(diff).toFixed(2)}</span></td>
+      <td style="font-size:10px;color:#999;">${getToday()}</td>
+    </tr>`;
+  }
+  document.getElementById('price-table-body').innerHTML = tableHtml;
+
+  // 价格走势图
+  renderPriceTrendChart();
+}
+
+function renderPriceTrendChart() {
+  const ctx = document.getElementById('priceTrendChart');
+  if (!ctx) return;
+  if (priceTrendChart) priceTrendChart.destroy();
+
+  const history = ensurePriceHistory();
+  const recent7 = history.slice(-7);
+
+  const labels = recent7.map(h => h.date.slice(5)); // MM-DD
+
+  const colors = ['#4caf50','#ff9800','#2196f3','#795548','#9c27b0','#607d8b','#f44336'];
+  const datasets = MATERIALS.map((mat, i) => ({
+    label: mat.icon + ' ' + mat.name,
+    data: recent7.map(h => h.prices[mat.id]?.sell || SUZHOU_BASE_PRICES[mat.id].sell),
+    borderColor: colors[i],
+    backgroundColor: colors[i] + '20',
+    borderWidth: 1.5,
+    tension: 0.3,
+    pointRadius: 2,
+    pointHoverRadius: 5,
+  }));
+
+  priceTrendChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { boxWidth: 10, padding: 8, font: { size: 9 }, usePointStyle: true }
+        }
+      },
+      scales: {
+        y: { title: { display: true, text: '元/斤', font: { size: 10 } }, ticks: { font: { size: 10 } } },
+        x: { ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+// ---- 利润预测 Tab ----
+function updatePrediction() {
+  const inv = getInventory();
+  const marketPrices = getMarketPrices() || generateDailyPrices();
+  const history = ensurePriceHistory();
+
+  // 计算当前库存价值
+  let currentValue = 0, currentCost = 0;
+  for (const mat of MATERIALS) {
+    currentValue += inv[mat.id].weight * (marketPrices[mat.id]?.sell || SUZHOU_BASE_PRICES[mat.id].sell);
+    currentCost += inv[mat.id].totalCost;
+  }
+  const currentProfit = currentValue - currentCost;
+
+  // 预测未来7天 (基于历史价格趋势的简单线性回归 + 季节性)
+  const recent7 = history.slice(-7);
+  const predictions = [];
+
+  for (let day = 0; day < 7; day++) {
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + day + 1);
+    const dateStr = futureDate.toISOString().split('T')[0];
+
+    let predictedValue = 0;
+    const dayPrices = {};
+
+    for (const mat of MATERIALS) {
+      // 提取该材料的历史价格序列
+      const priceSeries = history.map(h => h.prices[mat.id]?.sell || SUZHOU_BASE_PRICES[mat.id].sell);
+      const recentPrices = priceSeries.slice(-7);
+
+      // 简单线性趋势 + 随机波动
+      let trend = 0;
+      if (recentPrices.length >= 2) {
+        const first = recentPrices.slice(0, 3).reduce((a, b) => a + b, 0) / Math.min(3, recentPrices.slice(0, 3).length);
+        const last = recentPrices.slice(-3).reduce((a, b) => a + b, 0) / Math.min(3, recentPrices.slice(-3).length);
+        trend = (last - first) / Math.max(1, recentPrices.length);
+      }
+
+      // 添加月度周期因素
+      const monthDay = futureDate.getDate();
+      const seasonalFactor = Math.sin(monthDay / 30 * Math.PI * 2) * 0.03;
+
+      const lastPrice = recentPrices[recentPrices.length - 1] || SUZHOU_BASE_PRICES[mat.id].sell;
+      const predictedPrice = lastPrice + trend * (day + 1) + seasonalFactor * lastPrice;
+      const finalPrice = Math.max(predictedPrice, lastPrice * 0.85); // 不低于当前85%
+
+      dayPrices[mat.id] = { sell: finalPrice };
+      predictedValue += inv[mat.id].weight * finalPrice;
+    }
+
+    const predictedProfit = predictedValue - currentCost;
+    predictions.push({
+      date: dateStr,
+      value: predictedValue,
+      profit: predictedProfit,
+      prices: dayPrices,
+    });
+  }
+
+  // 渲染预测摘要
+  const finalProfit = predictions[predictions.length - 1].profit;
+  const profitChange = finalProfit - currentProfit;
+  const isProfit = finalProfit >= 0;
+
+  document.getElementById('prediction-summary-container').innerHTML = `
+    <div class="prediction-summary ${isProfit ? 'profit' : 'loss'}">
+      <div class="desc">📅 一周后预测${isProfit ? '盈利' : '亏损'}</div>
+      <div class="big-num">${fmtMoney(finalProfit)}</div>
+      <div class="desc">
+        较当前${profitChange >= 0 ? '增加' : '减少'} ${fmtMoney(Math.abs(profitChange))}
+        ${isProfit
+          ? '✅ 预计盈利，建议继续持有或适时出货'
+          : '⚠️ 预计亏损，建议关注市场价格，考虑尽快出货'}
+      </div>
+    </div>
+  `;
+
+  // 预测走势图
+  renderPredictChart(predictions, currentProfit);
+
+  // 各品类分析
+  renderCategoryAnalysis(inv, marketPrices, predictions);
+
+  // AI建议
+  renderAIAdvice(inv, marketPrices, predictions, currentProfit, finalProfit);
+}
+
+function renderPredictChart(predictions, currentProfit) {
+  const ctx = document.getElementById('predictChart');
+  if (!ctx) return;
+  if (predictChart) predictChart.destroy();
+
+  const labels = ['今日', ...predictions.map(p => p.date.slice(5))];
+  const profitData = [currentProfit, ...predictions.map(p => p.profit)];
+
+  predictChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: '预计利润 (元)',
+        data: profitData,
+        backgroundColor: profitData.map(v => v >= 0 ? '#4caf50' : '#f44336'),
+        borderRadius: 6,
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+      },
+      scales: {
+        y: {
+          title: { display: true, text: '利润 (元)', font: { size: 10 } },
+          ticks: {
+            font: { size: 10 },
+            callback: v => '¥' + v.toFixed(0),
+          }
+        },
+        x: { ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+function renderCategoryAnalysis(inv, marketPrices, predictions) {
+  let html = '<table><thead><tr><th>品类</th><th>库存</th><th>成本均价</th><th>当前市价</th><th>利润率</th><th>建议</th></tr></thead><tbody>';
+
+  for (const mat of MATERIALS) {
+    const w = inv[mat.id].weight;
+    if (w <= 0) continue;
+    const avgCost = inv[mat.id].totalCost / w;
+    const currentSell = marketPrices[mat.id]?.sell || SUZHOU_BASE_PRICES[mat.id].sell;
+    const margin = ((currentSell - avgCost) / avgCost * 100);
+    const marginClass = margin >= 10 ? 'text-green' : margin >= 0 ? '' : 'text-red';
+    const lastPredPrice = predictions[predictions.length - 1].prices[mat.id].sell;
+    const trend = lastPredPrice > currentSell ? '📈看涨' : lastPredPrice < currentSell ? '📉看跌' : '➡️持平';
+    const advice = margin >= 10 ? '建议出货' : margin >= 0 ? trend : '暂不出售';
+
+    html += `<tr>
+      <td>${mat.icon} ${mat.name}</td>
+      <td class="text-right">${fmtWeight(w)} 斤</td>
+      <td class="text-right">${fmtMoney(avgCost)}</td>
+      <td class="text-right">${fmtMoney(currentSell)}</td>
+      <td class="text-right ${marginClass}">${margin >= 0 ? '+' : ''}${margin.toFixed(1)}%</td>
+      <td>${advice}</td>
+    </tr>`;
+  }
+
+  html += '</tbody></table>';
+  document.getElementById('category-analysis').innerHTML = html ||
+    '<div class="empty-state"><div class="empty-icon">📭</div>暂无库存数据</div>';
+}
+
+function renderAIAdvice(inv, marketPrices, predictions, currentProfit, finalProfit) {
+  let advice = '';
+
+  // 总体建议
+  if (finalProfit > currentProfit * 1.05) {
+    advice += '📈 <b>趋势向好：</b>未来一周预测利润呈上升趋势，建议暂缓大规模出货，可等待价格进一步上涨后分批销售。<br><br>';
+  } else if (finalProfit < currentProfit * 0.95) {
+    advice += '📉 <b>风险提示：</b>未来一周预测利润可能下滑，建议尽快处理库存中利润率较低的品类，减少潜在损失。<br><br>';
+  } else {
+    advice += '➡️ <b>市场平稳：</b>未来一周价格波动不大，可根据实际经营需要正常出货，无需急于调整库存策略。<br><br>';
+  }
+
+  // 品类建议
+  const highMarginItems = [];
+  const lowMarginItems = [];
+  const noStockItems = [];
+
+  for (const mat of MATERIALS) {
+    const w = inv[mat.id].weight;
+    if (w <= 0) {
+      noStockItems.push(mat);
+      continue;
+    }
+    const avgCost = inv[mat.id].totalCost / w;
+    const currentSell = marketPrices[mat.id]?.sell || SUZHOU_BASE_PRICES[mat.id].sell;
+    const margin = (currentSell - avgCost) / avgCost;
+    if (margin >= 0.08) {
+      highMarginItems.push({ mat, margin });
+    } else if (margin < 0) {
+      lowMarginItems.push({ mat, margin });
+    }
+  }
+
+  if (highMarginItems.length > 0) {
+    advice += '🟢 <b>高利润品类（建议优先出货）：</b>';
+    advice += highMarginItems.map(i => `${i.mat.icon}${i.mat.name}(+${(i.margin*100).toFixed(1)}%)`).join('、');
+    advice += '<br><br>';
+  }
+
+  if (lowMarginItems.length > 0) {
+    advice += '🔴 <b>亏损品类（建议持有观望）：</b>';
+    advice += lowMarginItems.map(i => `${i.mat.icon}${i.mat.name}(${(i.margin*100).toFixed(1)}%)`).join('、');
+    advice += '<br><br>';
+  }
+
+  if (noStockItems.length > 0) {
+    advice += '📋 <b>零库存品类（可考虑补货）：</b>';
+    advice += noStockItems.map(m => `${m.icon}${m.name}`).join('、');
+    advice += '<br><br>';
+  }
+
+  // 苏州市场特别提示
+  advice += '🏙️ <b>苏州市场提示：</b>苏州作为长三角再生资源重要集散地，价格与上海、无锡联动较强。';
+  advice += '建议关注苏州吴中区、相城区大型回收站报价作为参考基准。铜、铝价格与国际大宗商品期货关联度高，波动较大，需重点跟踪。';
+
+  document.getElementById('ai-advice').innerHTML = advice;
+}
+
+// ==================== 数据导出/导入 ====================
+function exportAllData() {
+  try {
+    const data = {
+      version: '1.0',
+      exportTime: new Date().toISOString(),
+      inventory: loadData(STORAGE_KEYS.inventory, {}),
+      purchaseRecords: loadData(STORAGE_KEYS.purchaseRecords, []),
+      salesRecords: loadData(STORAGE_KEYS.salesRecords, []),
+      marketPrices: loadData(STORAGE_KEYS.marketPrices, {}),
+      priceHistory: loadData(STORAGE_KEYS.priceHistory, []),
+      lastPriceUpdate: loadData(STORAGE_KEYS.lastPriceUpdate, ''),
+    };
+
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const now = new Date();
+    const filename = '废品回收数据备份_' +
+      now.getFullYear() +
+      String(now.getMonth() + 1).padStart(2, '0') +
+      String(now.getDate()).padStart(2, '0') + '_' +
+      String(now.getHours()).padStart(2, '0') +
+      String(now.getMinutes()).padStart(2, '0') + '.json';
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    // 更新备份信息
+    updateBackupInfo();
+    showToast('✅ 数据已导出到：' + filename);
+  } catch(e) {
+    showToast('❌ 导出失败：' + e.message);
+  }
+}
+
+function importAllData(input) {
+  if (!input.files || !input.files[0]) return;
+
+  const file = input.files[0];
+  const reader = new FileReader();
+
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+
+      // 验证数据格式
+      if (!data.version || !data.inventory) {
+        throw new Error('备份文件格式不正确');
+      }
+
+      // 显示确认对话框
+      const exportTime = data.exportTime ? new Date(data.exportTime).toLocaleString('zh-CN') : '未知';
+      showConfirmDialog(
+        '📥 恢复数据确认',
+        `即将从备份恢复数据。<br><br>
+         <b>备份时间：</b>${exportTime}<br>
+         <b>库存品类：</b>${Object.values(data.inventory).filter(v => v.weight > 0).length} 种<br>
+         <b>入库记录：</b>${(data.purchaseRecords || []).length} 条<br>
+         <b>销售记录：</b>${(data.salesRecords || []).length} 条<br><br>
+         ⚠️ <span style="color:#c62828;">当前数据将被覆盖，是否继续？</span>`,
+        () => {
+          // 恢复所有数据
+          saveData(STORAGE_KEYS.inventory, data.inventory);
+          saveData(STORAGE_KEYS.purchaseRecords, data.purchaseRecords || []);
+          saveData(STORAGE_KEYS.salesRecords, data.salesRecords || []);
+          saveData(STORAGE_KEYS.marketPrices, data.marketPrices || {});
+          saveData(STORAGE_KEYS.priceHistory, data.priceHistory || []);
+          saveData(STORAGE_KEYS.lastPriceUpdate, data.lastPriceUpdate || '');
+
+          // 清空选择状态
+          selectedInMaterial = null;
+          selectedOutMaterial = null;
+
+          updateAllUI();
+          updateInTab();
+          updateOutTab();
+          updateBackupInfo();
+          showToast('✅ 数据恢复成功！');
+        }
+      );
+    } catch(e) {
+      showToast('❌ 导入失败：' + e.message);
+    }
+  };
+
+  reader.readAsText(file);
+  // 重置文件输入，允许重复导入同一文件
+  input.value = '';
+}
+
+function showConfirmDialog(title, message, onConfirm) {
+  // 移除已有对话框
+  const existing = document.querySelector('.dialog-overlay');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'dialog-overlay';
+  overlay.innerHTML = `
+    <div class="dialog">
+      <h3>${title}</h3>
+      <p>${message}</p>
+      <div class="dialog-btns">
+        <button class="btn btn-outline" id="dialog-cancel">取消</button>
+        <button class="btn btn-primary" id="dialog-confirm">确认恢复</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  overlay.querySelector('#dialog-cancel').onclick = () => overlay.remove();
+  overlay.querySelector('#dialog-confirm').onclick = () => {
+    overlay.remove();
+    onConfirm();
+  };
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+}
+
+function autoBackupPrompt() {
+  const lastBackup = localStorage.getItem('waste_last_backup_prompt');
+  const today = getToday();
+  if (lastBackup !== today) {
+    localStorage.setItem('waste_last_backup_prompt', today);
+    // 每天首次打开时提示备份
+    setTimeout(() => {
+      const info = document.getElementById('backup-info');
+      if (info && document.querySelector('#tab-dashboard.active')) {
+        info.innerHTML = '💡 温馨提示：建议每天导出一次备份，防止数据丢失';
+      }
+    }, 2000);
+  }
+}
+
+function updateBackupInfo() {
+  const info = document.getElementById('backup-info');
+  if (!info) return;
+  const purchases = getPurchaseRecords();
+  const sales = getSalesRecords();
+  const inv = getInventory();
+  let totalW = 0;
+  for (const v of Object.values(inv)) totalW += (v.weight || 0);
+  info.innerHTML = `📋 当前数据：${totalW.toFixed(1)}斤库存 | ${purchases.length}条入库 | ${sales.length}条销售`;
+}
+
+// ==================== 初始化 ====================
+function init() {
+  // 确保价格已更新
+  updateMarketPrices();
+  ensurePriceHistory();
+
+  // 初始化UI
+  updateAllUI();
+  updateInTab();
+  updateOutTab();
+  updateBackupInfo();
+  autoBackupPrompt();
+
+  // 设置更新时间
+  document.getElementById('updateTime').textContent = '🕐 数据更新于: ' + new Date().toLocaleString('zh-CN');
+
+  // 监听输入计算
+  document.getElementById('in-weight').addEventListener('input', calcInTotal);
+  document.getElementById('in-price').addEventListener('input', calcInTotal);
+  document.getElementById('out-weight').addEventListener('input', calcOutTotal);
+  document.getElementById('out-price').addEventListener('input', calcOutTotal);
+}
+
+// ==================== PWA 安装 ====================
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  // 阻止默认的安装提示
+  e.preventDefault();
+  deferredPrompt = e;
+  // 显示自定义安装按钮
+  showInstallBanner();
+});
+
+function showInstallBanner() {
+  // 检查是否已经显示过
+  if (localStorage.getItem('waste_install_dismissed')) return;
+
+  const banner = document.createElement('div');
+  banner.id = 'install-banner';
+  banner.style.cssText = `
+    position: fixed; bottom: 80px; left: 10px; right: 10px;
+    background: white; border-radius: 14px; padding: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.18); z-index: 150;
+    display: flex; align-items: center; gap: 12px;
+    animation: fadeIn 0.3s ease;
+  `;
+  banner.innerHTML = `
+    <div style="font-size: 36px;">♻️</div>
+    <div style="flex:1;">
+      <div style="font-weight:600;font-size:14px;">添加到手机桌面</div>
+      <div style="font-size:11px;color:#757575;">像APP一样使用，离线也能打开</div>
+    </div>
+    <button id="install-btn" style="
+      background:#2e7d32; color:white; border:none; border-radius:20px;
+      padding:10px 18px; font-size:13px; font-weight:600; white-space:nowrap;
+      cursor:pointer;
+    ">📲 安装</button>
+    <button id="install-close" style="
+      background:none; border:none; color:#999; font-size:18px; cursor:pointer;
+      padding:4px;
+    ">✕</button>
+  `;
+  document.body.appendChild(banner);
+
+  document.getElementById('install-btn').onclick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const result = await deferredPrompt.userChoice;
+      if (result.outcome === 'accepted') {
+        showToast('✅ 应用已添加到桌面！');
+      }
+      deferredPrompt = null;
+    }
+    banner.remove();
+    localStorage.setItem('waste_install_dismissed', '1');
+  };
+
+  document.getElementById('install-close').onclick = () => {
+    banner.remove();
+    localStorage.setItem('waste_install_dismissed', '1');
+  };
+}
+
+// 已安装 PWA 后隐藏提示
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  const banner = document.getElementById('install-banner');
+  if (banner) banner.remove();
+  console.log('PWA installed');
+});
+
+// 注册 Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(reg => console.log('SW registered:', reg.scope))
+      .catch(err => console.log('SW registration failed:', err));
+  });
+}
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', init);
+
+// 每天自动检查价格更新
+setInterval(() => {
+  if (shouldUpdatePrices()) {
+    updateMarketPrices();
+    ensurePriceHistory();
+    updateAllUI();
+  }
+}, 60000); // 每分钟检查一次
+
+console.log('♻️ 废品回收管理系统已就绪');
+console.log('📍 苏州市再生资源回收站');
+console.log('📊 数据存储于浏览器本地，请勿清除浏览器数据');
+console.log('📲 支持PWA安装到手机桌面');
+</script>
+</body>
+</html>

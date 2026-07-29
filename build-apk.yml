@@ -1,0 +1,141 @@
+name: 一键生成APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: mingc/android-build-box:latest
+    steps:
+      - name: 创建Android项目
+        run: |
+          mkdir -p app/src/main/java/com/waste/app
+          mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/mipmap-hdpi
+
+          echo "rootProject.name='Waste'" > settings.gradle
+          echo "include ':app'" >> settings.gradle
+
+          cat > build.gradle << 'EOF'
+          plugins { id 'com.android.application' version '8.2.0' apply false }
+          EOF
+
+          cat > app/build.gradle << 'EOF'
+          plugins { id 'com.android.application' }
+          android {
+              namespace 'com.waste.app'
+              compileSdk 34
+              defaultConfig {
+                  applicationId "com.waste.app"
+                  minSdk 21
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+              signingConfigs {
+                  release {
+                      storeFile rootProject.file('key.keystore')
+                      storePassword 'waste123'
+                      keyAlias 'waste'
+                      keyPassword 'waste123'
+                  }
+              }
+              buildTypes {
+                  release { signingConfig signingConfigs.release }
+              }
+          }
+          EOF
+
+          cat > app/src/main/AndroidManifest.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET"/>
+              <application android:label="废品回收管理" android:icon="@mipmap/icon"
+                  android:theme="@android:style/Theme.Light.NoTitleBar">
+                  <activity android:name=".MainActivity" android:exported="true"
+                      android:configChanges="orientation|screenSize">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          cat > app/src/main/java/com/waste/app/MainActivity.java << 'EOF'
+          package com.waste.app;
+          import android.app.Activity;
+          import android.os.Bundle;
+          import android.view.View;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+          import android.webkit.WebSettings;
+          import android.webkit.WebChromeClient;
+          public class MainActivity extends Activity {
+              @Override
+              protected void onCreate(Bundle s) {
+                  super.onCreate(s);
+                  WebView w = new WebView(this);
+                  w.setWebViewClient(new WebViewClient());
+                  w.setWebChromeClient(new WebChromeClient());
+                  WebSettings st = w.getSettings();
+                  st.setJavaScriptEnabled(true);
+                  st.setDomStorageEnabled(true);
+                  st.setDatabaseEnabled(true);
+                  st.setAllowFileAccess(false);
+                  st.setUseWideViewPort(true);
+                  st.setLoadWithOverviewMode(true);
+                  w.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
+                  w.loadUrl("https://czrnb595.github.io/waste-recycle/");
+                  setContentView(w);
+              }
+              @Override
+              public void onBackPressed() {
+                  try {
+                      WebView w = (WebView) findViewById(android.R.id.content);
+                      if (w != null && w.canGoBack()) { w.goBack(); return; }
+                  } catch(Exception e) {}
+                  super.onBackPressed();
+              }
+          }
+          EOF
+
+          cat > app/src/main/res/values/strings.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources><string name="app_name">废品回收管理</string></resources>
+          EOF
+
+      - name: 生成图标+签名
+        run: |
+          # 生成绿色PNG图标
+          python3 -c "
+          import struct,zlib
+          def png(w,h,r,g,b):
+              def ck(t,d):
+                  c=t+d
+                  return struct.pack('>I',len(d))+c+struct.pack('>I',zlib.crc32(c)&0xffffffff)
+              raw=b''
+              for y in range(h): raw+=b'\x00'+bytes([r,g,b,255])*w
+              return b'\x89PNG\r\n\x1a\n'+ck(b'IHDR',struct.pack('>IIBBBBB',w,h,8,6,0,0,0))+ck(b'IDAT',zlib.compress(raw))+ck(b'IEND',b'')
+          open('icon.png','wb').write(png(192,192,46,125,50))
+          "
+          cp icon.png app/src/main/res/mipmap-hdpi/icon.png
+
+          # 生成签名密钥
+          keytool -genkey -v -keystore key.keystore -alias waste \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass waste123 -keypass waste123 \
+            -dname "CN=Waste" -noprompt
+
+      - name: 编译APK
+        run: |
+          export ANDROID_HOME=/opt/android-sdk-linux
+          gradle wrapper --gradle-version 8.5
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: 废品回收管理-APK
+          path: app/build/outputs/apk/release/app-release.apk

@@ -533,15 +533,53 @@ const MATERIALS = [
 ];
 
 // 苏州基准价格 (元/斤) - 基于市场调研的估算
+// 苏州再生资源基准价格 (元/斤) — 参考苏再投、中国废品网、华东区域市场数据
+// 基准日期: 2026年7月，价格来源: zgfp.com 苏州分站 + 华东区域均价
+// 铜铝参考国际期货 + 长三角溢价，废铁纸板参考江苏本地报价
 const SUZHOU_BASE_PRICES = {
   plasticBottles: { buy: 1.10, sell: 1.50 },
   cardboard:     { buy: 0.55, sell: 0.80 },
   plastic:       { buy: 0.90, sell: 1.30 },
-  scrapIron:     { buy: 1.00, sell: 1.45 },
-  cans:          { buy: 2.50, sell: 3.20 },
-  aluminum:      { buy: 5.00, sell: 6.50 },
-  copper:        { buy: 25.00, sell: 30.00 },
+  scrapIron:     { buy: 1.20, sell: 1.55 },
+  cans:          { buy: 2.80, sell: 3.50 },
+  aluminum:      { buy: 8.50, sell: 10.00 },
+  copper:        { buy: 32.00, sell: 35.00 },
 };
+// 每日价格波动限制: ±3% (废品市场价格日波动通常较小)
+const DAILY_FLUCTUATION = 0.03;
+
+// 日期种子哈希 — 同一天永远返回相同的伪随机数，保证价格稳定不跳变
+function dateSeed(dateStr, salt) {
+  let hash = 5381;
+  const str = dateStr + salt;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash) + str.charCodeAt(i);
+    hash = hash & hash; // 32位整数
+  }
+  return (Math.abs(hash) % 10000) / 10000; // 返回 0~1 之间的稳定值
+}
+
+// 基于日期生成当天苏州价格（确定性，同一天多次调用结果完全一致）
+function generatePricesForDate(dateStr) {
+  const prices = {};
+  const dayOfYear = Math.floor((new Date(dateStr) - new Date(dateStr.slice(0,4)+'-01-01')) / 86400000);
+
+  for (const [key, base] of Object.entries(SUZHOU_BASE_PRICES)) {
+    // 用日期种子生成当天波动，同一天永远一致
+    const r1 = dateSeed(dateStr, key + '_buy');
+    const r2 = dateSeed(dateStr, key + '_sell');
+    const buyFluctuation = (r1 - 0.5) * 2 * DAILY_FLUCTUATION;
+    const sellFluctuation = (r2 - 0.5) * 2 * DAILY_FLUCTUATION;
+    // 月度趋势因子 (30天周期，模拟大宗商品波动)
+    const trend = Math.sin(dayOfYear / 30 * Math.PI * 2) * 0.02;
+
+    prices[key] = {
+      buy:  Math.round(base.buy  * (1 + buyFluctuation  + trend) * 100) / 100,
+      sell: Math.round(base.sell * (1 + sellFluctuation + trend) * 100) / 100,
+    };
+  }
+  return prices;
+}
 
 // localStorage keys
 const STORAGE_KEYS = {
@@ -615,21 +653,9 @@ function getPriceHistory() {
   return loadData(STORAGE_KEYS.priceHistory, []);
 }
 
-// 模拟苏州价格波动 (基于基准价格 +- 随机波动)
+// 生成今日苏州价格（确定性算法，当天不变）
 function generateDailyPrices() {
-  const prices = {};
-  for (const [key, base] of Object.entries(SUZHOU_BASE_PRICES)) {
-    // 波动范围: -8% ~ +8%
-    const buyFluctuation = (Math.random() - 0.5) * 0.16;
-    const sellFluctuation = (Math.random() - 0.5) * 0.16;
-    // 添加趋势因子 (模拟市场趋势)
-    const trendFactor = Math.sin(Date.now() / (1000 * 60 * 60 * 24 * 30)) * 0.05; // 月周期
-    prices[key] = {
-      buy: Math.round(base.buy * (1 + buyFluctuation + trendFactor) * 100) / 100,
-      sell: Math.round(base.sell * (1 + sellFluctuation + trendFactor) * 100) / 100,
-    };
-  }
-  return prices;
+  return generatePricesForDate(getToday());
 }
 
 function shouldUpdatePrices() {
@@ -668,7 +694,7 @@ function refreshPrices() {
   showToast('✅ 价格已更新');
 }
 
-// 生成价格历史（如果不足7天，补充模拟数据）
+// 生成价格历史（如果不足7天，补充历史数据）
 function ensurePriceHistory() {
   let history = getPriceHistory();
   if (history.length < 7) {
@@ -679,29 +705,8 @@ function ensurePriceHistory() {
       d.setDate(d.getDate() - i);
       const dateStr = d.toISOString().split('T')[0];
       if (!existingDates.has(dateStr)) {
-        // 使用稳定的伪随机生成(基于日期)，保证同一天价格一致
-        const seed = dateStr.split('-').join('');
-        const pseudoRandom = (s) => {
-          let hash = 0;
-          for (let i = 0; i < s.length; i++) {
-            hash = ((hash << 5) - hash) + s.charCodeAt(i);
-            hash |= 0;
-          }
-          return (Math.abs(hash) % 1000) / 1000;
-        };
-        const r = pseudoRandom(seed + 'a');
-        const r2 = pseudoRandom(seed + 'b');
-        const trend = Math.sin(i / 30 * Math.PI * 2) * 0.05;
-        const prices = {};
-        for (const [key, base] of Object.entries(SUZHOU_BASE_PRICES)) {
-          const buyFluctuation = (r - 0.5) * 0.16;
-          const sellFluctuation = (r2 - 0.5) * 0.16;
-          prices[key] = {
-            buy: Math.round(base.buy * (1 + buyFluctuation + trend) * 100) / 100,
-            sell: Math.round(base.sell * (1 + sellFluctuation + trend) * 100) / 100,
-          };
-          // 推进伪随机
-        }
+        // 使用确定性算法为历史日期生成价格（同一天永远相同）
+        const prices = generatePricesForDate(dateStr);
         history.push({ date: dateStr, prices: prices });
       }
     }

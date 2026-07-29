@@ -14,8 +14,9 @@ jobs:
 
       - uses: android-actions/setup-android@v3
 
-      - name: 创建Android项目
+      - name: 创建项目+编译
         run: |
+          set -e
           mkdir -p app/src/main/java/com/waste/app
           mkdir -p app/src/main/res/values
           mkdir -p app/src/main/res/mipmap-hdpi
@@ -89,14 +90,6 @@ jobs:
                   w.loadUrl("https://czrnb595.github.io/waste-recycle/");
                   setContentView(w);
               }
-              @Override
-              public void onBackPressed() {
-                  try {
-                      WebView w = (WebView) findViewById(android.R.id.content);
-                      if (w != null && w.canGoBack()) { w.goBack(); return; }
-                  } catch(Exception e) {}
-                  super.onBackPressed();
-              }
           }
           EOF
 
@@ -105,6 +98,7 @@ jobs:
           <resources><string name="app_name">废品回收管理</string></resources>
           EOF
 
+          # Gradle wrapper properties
           cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
           distributionBase=GRADLE_USER_HOME
           distributionPath=wrapper/dists
@@ -113,19 +107,21 @@ jobs:
           zipStorePath=wrapper/dists
           EOF
 
-          # 创建 gradlew 启动脚本
-          cat > gradlew << 'SHEOF'
-          #!/bin/sh
-          GRADLE_USER_HOME=${GRADLE_USER_HOME:-$HOME/.gradle}
-          if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
-              echo "Downloading gradle wrapper..."
-              curl -sL "https://raw.githubusercontent.com/gradle/gradle/v8.5.0/gradle/wrapper/gradle-wrapper.jar" -o gradle/wrapper/gradle-wrapper.jar
-          fi
-          exec java -cp gradle/wrapper/gradle-wrapper.jar org.gradle.wrapper.GradleWrapperMain "$@"
-          SHEOF
+          # Download gradle-wrapper.jar
+          curl -sL "https://raw.githubusercontent.com/gradle/gradle/v8.5.0/gradle/wrapper/gradle-wrapper.jar" -o gradle/wrapper/gradle-wrapper.jar
+
+          # Create gradlew
+          cat > gradlew << 'EOF'
+          #!/bin/bash
+          DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+          exec java -cp "$DIR/gradle/wrapper/gradle-wrapper.jar" org.gradle.wrapper.GradleWrapperMain "$@"
+          EOF
           chmod +x gradlew
 
-          # 生成图标
+          # Create local.properties for SDK path
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+
+          # Icon
           python3 -c "
           import struct,zlib
           def png(w,h,r,g,b):
@@ -139,17 +135,15 @@ jobs:
           "
           cp icon.png app/src/main/res/mipmap-hdpi/icon.png
 
-          # 签名密钥
+          # Key
           keytool -genkey -v -keystore key.keystore -alias waste \
             -keyalg RSA -keysize 2048 -validity 10000 \
             -storepass waste123 -keypass waste123 \
             -dname "CN=Waste" -noprompt
 
-      - name: 编译APK
-        run: |
+          # ============ BUILD ============
+          echo "=== BUILDING APK ==="
           ./gradlew assembleRelease --no-daemon --stacktrace
-        env:
-          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
 
       - uses: actions/upload-artifact@v4
         with:

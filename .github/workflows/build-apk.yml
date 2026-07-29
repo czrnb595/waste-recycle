@@ -1,4 +1,4 @@
-name: 构建APK
+name: 一键生成APK
 
 on:
   workflow_dispatch:
@@ -6,24 +6,16 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container: mingc/android-build-box:latest
     steps:
-      - uses: actions/setup-java@v4
-        with: { java-version: '17', distribution: 'temurin' }
-
-      - uses: android-actions/setup-android@v3
-
-      - uses: gradle/actions/setup-gradle@v3
-
-      - name: 创建 Android 项目
+      - name: 创建Android项目
         run: |
-          mkdir -p app/src/main/java/com/recycle/suzhou
+          mkdir -p app/src/main/java/com/waste/app
           mkdir -p app/src/main/res/values
-          mkdir -p gradle/wrapper
+          mkdir -p app/src/main/res/mipmap-hdpi
 
-          cat > settings.gradle << 'EOF'
-          rootProject.name = 'WasteRecycle'
-          include ':app'
-          EOF
+          echo "rootProject.name='Waste'" > settings.gradle
+          echo "include ':app'" >> settings.gradle
 
           cat > build.gradle << 'EOF'
           plugins { id 'com.android.application' version '8.2.0' apply false }
@@ -32,10 +24,10 @@ jobs:
           cat > app/build.gradle << 'EOF'
           plugins { id 'com.android.application' }
           android {
-              namespace 'com.recycle.suzhou'
+              namespace 'com.waste.app'
               compileSdk 34
               defaultConfig {
-                  applicationId "com.recycle.suzhou"
+                  applicationId "com.waste.app"
                   minSdk 21
                   targetSdk 34
                   versionCode 1
@@ -43,25 +35,26 @@ jobs:
               }
               signingConfigs {
                   release {
-                      storeFile rootProject.file('release.keystore')
-                      storePassword 'android123'
-                      keyAlias 'wasteapp'
-                      keyPassword 'android123'
+                      storeFile rootProject.file('key.keystore')
+                      storePassword 'waste123'
+                      keyAlias 'waste'
+                      keyPassword 'waste123'
                   }
               }
               buildTypes {
                   release { signingConfig signingConfigs.release }
               }
           }
-          dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
           EOF
 
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET"/>
-              <application android:label="废品回收管理" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
-                  <activity android:name=".MainActivity" android:exported="true">
+              <application android:label="废品回收管理" android:icon="@mipmap/icon"
+                  android:theme="@android:style/Theme.Light.NoTitleBar">
+                  <activity android:name=".MainActivity" android:exported="true"
+                      android:configChanges="orientation|screenSize">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN"/>
                           <category android:name="android.intent.category.LAUNCHER"/>
@@ -71,31 +64,40 @@ jobs:
           </manifest>
           EOF
 
-          cat > app/src/main/java/com/recycle/suzhou/MainActivity.java << 'EOF'
-          package com.recycle.suzhou;
+          cat > app/src/main/java/com/waste/app/MainActivity.java << 'EOF'
+          package com.waste.app;
+          import android.app.Activity;
           import android.os.Bundle;
+          import android.view.View;
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
           import android.webkit.WebSettings;
-          import androidx.appcompat.app.AppCompatActivity;
-          public class MainActivity extends AppCompatActivity {
+          import android.webkit.WebChromeClient;
+          public class MainActivity extends Activity {
               @Override
               protected void onCreate(Bundle s) {
                   super.onCreate(s);
                   WebView w = new WebView(this);
                   w.setWebViewClient(new WebViewClient());
+                  w.setWebChromeClient(new WebChromeClient());
                   WebSettings st = w.getSettings();
                   st.setJavaScriptEnabled(true);
                   st.setDomStorageEnabled(true);
                   st.setDatabaseEnabled(true);
+                  st.setAllowFileAccess(false);
+                  st.setUseWideViewPort(true);
+                  st.setLoadWithOverviewMode(true);
+                  w.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
                   w.loadUrl("https://czrnb595.github.io/waste-recycle/");
                   setContentView(w);
               }
               @Override
               public void onBackPressed() {
-                  WebView w = (WebView) findViewById(android.R.id.content);
-                  if (w != null && w.canGoBack()) w.goBack();
-                  else super.onBackPressed();
+                  try {
+                      WebView w = (WebView) findViewById(android.R.id.content);
+                      if (w != null && w.canGoBack()) { w.goBack(); return; }
+                  } catch(Exception e) {}
+                  super.onBackPressed();
               }
           }
           EOF
@@ -105,25 +107,35 @@ jobs:
           <resources><string name="app_name">废品回收管理</string></resources>
           EOF
 
-          cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
-          distributionBase=GRADLE_USER_HOME
-          distributionPath=wrapper/dists
-          distributionUrl=https\://services.gradle.org/distributions/gradle-8.5-bin.zip
-          EOF
-
-      - name: 生成签名
+      - name: 生成图标+签名
         run: |
-          keytool -genkey -v -keystore release.keystore -alias wasteapp \
+          # 生成绿色PNG图标
+          python3 -c "
+          import struct,zlib
+          def png(w,h,r,g,b):
+              def ck(t,d):
+                  c=t+d
+                  return struct.pack('>I',len(d))+c+struct.pack('>I',zlib.crc32(c)&0xffffffff)
+              raw=b''
+              for y in range(h): raw+=b'\x00'+bytes([r,g,b,255])*w
+              return b'\x89PNG\r\n\x1a\n'+ck(b'IHDR',struct.pack('>IIBBBBB',w,h,8,6,0,0,0))+ck(b'IDAT',zlib.compress(raw))+ck(b'IEND',b'')
+          open('icon.png','wb').write(png(192,192,46,125,50))
+          "
+          cp icon.png app/src/main/res/mipmap-hdpi/icon.png
+
+          # 生成签名密钥
+          keytool -genkey -v -keystore key.keystore -alias waste \
             -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass android123 -keypass android123 \
+            -storepass waste123 -keypass waste123 \
             -dname "CN=Waste" -noprompt
 
-      - name: 编译
+      - name: 编译APK
         run: |
+          export ANDROID_HOME=/opt/android-sdk-linux
           gradle wrapper --gradle-version 8.5
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
       - uses: actions/upload-artifact@v4
         with:
           name: 废品回收管理-APK
-          path: app/build/outputs/apk/release/*.apk
+          path: app/build/outputs/apk/release/app-release.apk

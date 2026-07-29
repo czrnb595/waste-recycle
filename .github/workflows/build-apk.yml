@@ -1,0 +1,129 @@
+name: 构建APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v4
+        with: { java-version: '17', distribution: 'temurin' }
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v3
+
+      - name: 创建 Android 项目
+        run: |
+          mkdir -p app/src/main/java/com/recycle/suzhou
+          mkdir -p app/src/main/res/values
+          mkdir -p gradle/wrapper
+
+          cat > settings.gradle << 'EOF'
+          rootProject.name = 'WasteRecycle'
+          include ':app'
+          EOF
+
+          cat > build.gradle << 'EOF'
+          plugins { id 'com.android.application' version '8.2.0' apply false }
+          EOF
+
+          cat > app/build.gradle << 'EOF'
+          plugins { id 'com.android.application' }
+          android {
+              namespace 'com.recycle.suzhou'
+              compileSdk 34
+              defaultConfig {
+                  applicationId "com.recycle.suzhou"
+                  minSdk 21
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+              signingConfigs {
+                  release {
+                      storeFile rootProject.file('release.keystore')
+                      storePassword 'android123'
+                      keyAlias 'wasteapp'
+                      keyPassword 'android123'
+                  }
+              }
+              buildTypes {
+                  release { signingConfig signingConfigs.release }
+              }
+          }
+          dependencies { implementation 'androidx.appcompat:appcompat:1.6.1' }
+          EOF
+
+          cat > app/src/main/AndroidManifest.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET"/>
+              <application android:label="废品回收管理" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          cat > app/src/main/java/com/recycle/suzhou/MainActivity.java << 'EOF'
+          package com.recycle.suzhou;
+          import android.os.Bundle;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+          import android.webkit.WebSettings;
+          import androidx.appcompat.app.AppCompatActivity;
+          public class MainActivity extends AppCompatActivity {
+              @Override
+              protected void onCreate(Bundle s) {
+                  super.onCreate(s);
+                  WebView w = new WebView(this);
+                  w.setWebViewClient(new WebViewClient());
+                  WebSettings st = w.getSettings();
+                  st.setJavaScriptEnabled(true);
+                  st.setDomStorageEnabled(true);
+                  st.setDatabaseEnabled(true);
+                  w.loadUrl("https://czrnb595.github.io/waste-recycle/");
+                  setContentView(w);
+              }
+              @Override
+              public void onBackPressed() {
+                  WebView w = (WebView) findViewById(android.R.id.content);
+                  if (w != null && w.canGoBack()) w.goBack();
+                  else super.onBackPressed();
+              }
+          }
+          EOF
+
+          cat > app/src/main/res/values/strings.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources><string name="app_name">废品回收管理</string></resources>
+          EOF
+
+          cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.5-bin.zip
+          EOF
+
+      - name: 生成签名
+        run: |
+          keytool -genkey -v -keystore release.keystore -alias wasteapp \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android123 -keypass android123 \
+            -dname "CN=Waste" -noprompt
+
+      - name: 编译
+        run: |
+          gradle wrapper --gradle-version 8.5
+          ./gradlew assembleRelease --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: 废品回收管理-APK
+          path: app/build/outputs/apk/release/*.apk
